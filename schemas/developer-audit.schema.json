@@ -1,0 +1,574 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/hope586/dsh-context-lite/schemas/developer-audit.schema.json",
+  "title": "DSH Context Lite developer audit v1",
+  "description": "Snapshot/diff values and export records. Additive fields are permitted. HTTP success responses wrap snapshot/diff in {ok:true,value}.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/snapshot"
+    },
+    {
+      "$ref": "#/$defs/diff"
+    },
+    {
+      "$ref": "#/$defs/exportRecord"
+    }
+  ],
+  "$defs": {
+    "ref": {
+      "type": "object",
+      "required": [
+        "sessionId",
+        "formatVersion",
+        "seq"
+      ],
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "formatVersion": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "key",
+        "evidence"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "entryMethod": {
+          "type": "string"
+        },
+        "actor": {
+          "type": "object",
+          "required": [
+            "type",
+            "id"
+          ],
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            }
+          }
+        },
+        "contributors": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": [
+        "id",
+        "ref",
+        "eventType",
+        "role",
+        "source",
+        "representation",
+        "estimatedTokens",
+        "contentHash"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "eventType": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "representation": {
+          "type": "object",
+          "required": [
+            "kind",
+            "originRounds"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "original",
+                "summary",
+                "replacement",
+                "tool-definitions"
+              ]
+            },
+            "projected": {
+              "type": "boolean"
+            },
+            "originRounds": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "estimatedTokens": {
+          "type": "number",
+          "minimum": 0
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "required": [
+        "kind",
+        "seq",
+        "basis"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "current",
+            "log-cut",
+            "request-input",
+            "round-end",
+            "round-progress"
+          ]
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "basis": {
+          "enum": [
+            "canonical-log-replay",
+            "settlement-prefix"
+          ]
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "capturedThroughSeq",
+        "originRevision",
+        "captureRunId",
+        "observedAt"
+      ],
+      "properties": {
+        "capturedThroughSeq": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "originRevision": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "captureRunId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observedAt": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "required": [
+        "basis",
+        "estimatedTokens",
+        "contextWindowTokens",
+        "utilization",
+        "newlyRetainedThisRoundTokens",
+        "bySource",
+        "attribution"
+      ],
+      "properties": {
+        "basis": {
+          "const": "dsh-fixed-estimate"
+        },
+        "estimatedTokens": {
+          "type": "number",
+          "minimum": 0
+        },
+        "contextWindowTokens": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "utilization": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "newlyRetainedThisRoundTokens": {
+          "type": "number",
+          "minimum": 0
+        },
+        "bySource": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "key",
+              "estimatedTokens"
+            ]
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "contextBasis",
+        "wireRequestCapture",
+        "sourceOwnership",
+        "findings",
+        "collectorObservation",
+        "retention"
+      ],
+      "properties": {
+        "contextBasis": {
+          "const": "canonical-log-replay"
+        },
+        "wireRequestCapture": {
+          "const": false
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sourceOwnership": {
+          "type": "object",
+          "required": [
+            "unknown",
+            "unconfirmed"
+          ]
+        },
+        "collectorObservation": {
+          "type": "object"
+        },
+        "retention": {
+          "type": "object",
+          "required": [
+            "policy",
+            "hostLog",
+            "eventRecordsDropped",
+            "evidenceRecordsDropped",
+            "absenceMeaning",
+            "sessionEvictionDetectable"
+          ]
+        }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "required": [
+        "kind",
+        "event"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "derived-from",
+            "replaces-range",
+            "summary-covers",
+            "prune-covers"
+          ]
+        },
+        "event": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "required": [
+        "contract",
+        "schemaVersion",
+        "algorithmVersion",
+        "session",
+        "observation",
+        "boundary",
+        "measurement",
+        "coverage",
+        "contentHash",
+        "items",
+        "relationships"
+      ],
+      "properties": {
+        "contract": {
+          "const": "dsh-context-audit"
+        },
+        "schemaVersion": {
+          "const": 1
+        },
+        "algorithmVersion": {
+          "type": "integer"
+        },
+        "session": {
+          "type": "object",
+          "required": [
+            "id",
+            "formatVersion",
+            "parentSessionId",
+            "inheritedEventCount"
+          ]
+        },
+        "observation": {
+          "$ref": "#/$defs/observation"
+        },
+        "boundary": {
+          "$ref": "#/$defs/boundary"
+        },
+        "measurement": {
+          "$ref": "#/$defs/measurement"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/item"
+          }
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relationship"
+          }
+        }
+      }
+    },
+    "diff": {
+      "type": "object",
+      "required": [
+        "contract",
+        "schemaVersion",
+        "from",
+        "to",
+        "observation",
+        "coverage",
+        "estimatedTokenDelta",
+        "counts",
+        "changes",
+        "relationships",
+        "surfaceUpdates"
+      ],
+      "properties": {
+        "contract": {
+          "const": "dsh-context-audit"
+        },
+        "schemaVersion": {
+          "const": 1
+        },
+        "observation": {
+          "$ref": "#/$defs/observation"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        },
+        "estimatedTokenDelta": {
+          "type": "number"
+        },
+        "counts": {
+          "type": "object",
+          "required": [
+            "added",
+            "removed",
+            "modified"
+          ]
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "added",
+                  "removed",
+                  "modified"
+                ]
+              },
+              "before": {
+                "$ref": "#/$defs/item"
+              },
+              "after": {
+                "$ref": "#/$defs/item"
+              }
+            }
+          }
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relationship"
+          }
+        },
+        "surfaceUpdates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/surfaceUpdate"
+          }
+        }
+      }
+    },
+    "exportRecord": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "recordType",
+            "value"
+          ],
+          "properties": {
+            "recordType": {
+              "enum": [
+                "manifest",
+                "origin-evidence",
+                "event"
+              ]
+            },
+            "value": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "recordType",
+            "value"
+          ],
+          "properties": {
+            "recordType": {
+              "const": "item"
+            },
+            "value": {
+              "$ref": "#/$defs/item"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "recordType",
+            "value"
+          ],
+          "properties": {
+            "recordType": {
+              "const": "relationship"
+            },
+            "value": {
+              "$ref": "#/$defs/relationship"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "recordType",
+            "value"
+          ],
+          "properties": {
+            "recordType": {
+              "const": "complete"
+            },
+            "value": {
+              "type": "object",
+              "required": [
+                "records",
+                "sha256",
+                "hashBasis"
+              ],
+              "properties": {
+                "records": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "hashBasis": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "surfaceUpdate": {
+      "type": "object",
+      "required": [
+        "ref",
+        "eventType",
+        "surfaceOp",
+        "source",
+        "retainedAtEnd"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "eventType": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "retainedAtEnd": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

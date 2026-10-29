@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { build } from 'esbuild';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 const {version}=JSON.parse(await readFile('package.json','utf8'));
-const fingerprint=createHash('sha256').update(version);for(const p of ['src/index.js','src/audit.js','src/client.js','src/style.css','src/provenance.js','src/collector.js','src/origin-store.js','src/i18n.js'])fingerprint.update(await readFile(p));const buildId=fingerprint.digest('hex').slice(0,12);
+const fingerprint=createHash('sha256').update(version);for(const p of ['src/index.js','src/audit.js','src/developer-audit.js','src/client.js','src/style.css','src/provenance.js','src/collector.js','src/origin-store.js','src/i18n.js'])fingerprint.update(await readFile(p));const buildId=fingerprint.digest('hex').slice(0,12);
 await mkdir('lib',{recursive:true});
 const result=await build({entryPoints:['src/index.js'],outfile:'lib/index.js',bundle:true,platform:'node',external:['@deepseek-ai/dsh-scope'],format:'esm',target:'node22',legalComments:'inline',metafile:true,define:{__DCL_BUILD__:JSON.stringify(buildId),__DCL_VERSION__:JSON.stringify(version)}});
 const css=await readFile('src/style.css','utf8');

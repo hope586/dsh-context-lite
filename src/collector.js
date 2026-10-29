@@ -229,7 +229,7 @@ export function collectOrigins(ctx,{enabled=true,maxSessions=64,maxRecords=2000}
     try {const bundles=await manager.listBundles();for(const b of bundles)for(const row of b.rows||[])catalog.set(row.moduleName,{package:b.name,title:display(row.meta?.title)||display(b.meta?.title),version:b.version});}catch{failures++;}
   }
   const api={store,refreshCatalog,
-    status:()=>({enabled:active,failures,scopeAdapter,lateListeners,registrations:registrationCount,liveRegistrations:registrations.size,snapshotScans,snapshotEntries,unresolvedRegistrations:[...registrations].filter(r=>!r.producer).length,observedCalls,revision:store.revision,persistence:store.table?'host-storage':'memory',storageError:store.storageError,coverage:'existing registry entries are inventoried; unobserved owners, removed history and bypassed calls may remain unknown'}),
+    status:()=>({enabled:active,captureRunId:store.captureRunId,startedAt:store.startedAt,failures,scopeAdapter,lateListeners,registrations:registrationCount,liveRegistrations:registrations.size,snapshotScans,snapshotEntries,unresolvedRegistrations:[...registrations].filter(r=>!r.producer).length,observedCalls,revision:store.revision,persistence:store.table?'host-storage':'memory',storageError:store.storageError,retention:{maxSessions,maxEventRecordsPerSession:maxRecords,maxEvidenceRecordsPerSession:maxRecords,writeDebounceMs:100},coverage:'existing registry entries are inventoried; unobserved owners, removed history and bypassed calls may remain unknown'}),
     inspect:sessionId=>({...store.inspect(sessionId),collection:api.status()}),
     originFor:(sessionId,event)=>{
       let value=store.originFor(sessionId,event.seq);

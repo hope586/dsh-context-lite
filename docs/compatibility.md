@@ -1,6 +1,6 @@
 # Compatibility and acceptance
 
-Current release: 0.2.2; initial provenance acceptance: 0.2.1. Tested on macOS with Node.js 22.22.2. Declared engines are an installation range, not a claim that every release in the range was tested.
+Current release: 0.3.0; initial provenance acceptance: 0.2.1. Tested on macOS with Node.js 22.22.2. Declared engines are an installation range, not a claim that every release in the range was tested.
 
 | Surface | Host | Evidence |
 |---|---|---|
@@ -26,3 +26,13 @@ The prebuilt tarball and a Git source with committed lib files were installed in
 ## 0.2.2 localization
 
 English and Chinese follow the host locale. Web acceptance covered a language switch with open source details, the existing tab caption, source/audit/request/coverage labels and restoration to Chinese. User text stayed unchanged. Automated coverage now includes dictionary/placeholder parity, locale-independent source identity and measurements, cached presentation/error switching, attachment truncation, additive API error keys and the built client title registration (38 tests total). The API retains legacy Chinese fallback text plus semantic label metadata; it does not translate stored conversations. No additional model requests are needed for a language change.
+
+## 0.3.0 developer audit
+
+The developer snapshot/diff/export routes were tested through the actual authenticated Web host (0.2.0-rc.2), including 401/400/409 responses, paged observations, JSON Schema validation, native surface references and fixed-estimate equality, historical native compression, logical request versus round-final boundaries, and JSON/JSONL exports both with and without content. Completion counts/checksums verified. Reading/exporting left the tested original compressed session files byte-identical. One aggregate system item's inventoried contributors remained unconfirmed and were reported as such.
+
+A new real headless source-injection comparison with the observer absent versus present produced identical first logical inputs/tool headers and the same read-only file-tool arguments/results. Another collector-off/on comparison used the unchanged BrowserSkill 0.3.3 and GenUI 0.14.0 code through normal lazy skill activation: skill → bsk_session(list) → validate_dsh_ui succeeded in both runs, and the first logical inputs matched. Later model output is not assumed deterministic. Direct file-loaded third-party entries are correctly classified as scripts in this isolated fixture.
+
+Desktop 0.2.1-rc.3 loaded the final 0.3.0 build through the official plugin switches. Its live sidebar reported the matching backend build and kept the existing timeline/GenUI rendering. New developer HTTP routes were exercised on Web; a new Desktop model run was not needed or claimed.
+
+47 synthetic tests cover the previous functionality plus developer boundaries, transient surface updates, content opt-in, export completeness/size refusal, source revision/restart pins, evidence history/version preservation, retention and storage-failure containment. The local five-trial, 1000-admission benchmark measured about 38 microseconds added per admission; 1000 existing registry entries were inventoried in about 0.4 ms. These exclude disk/network/model time and are not an end-to-end latency guarantee. Evidence history adds bounded metadata storage; no periodic full-log scan or per-request full-body persistence was introduced.

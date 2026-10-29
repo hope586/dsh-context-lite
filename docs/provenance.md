@@ -26,3 +26,5 @@ Logical requests use the log prefix before response/attempt settlement. They are
 ## Read API
 
 GET /api/dsh-context-lite/audit uses the host Connection authentication and private/no-store responses. sessionId is mandatory. Kinds: overview, detail, event, request and origins (metadata only). Historical details retain event references; source bodies are paged on demand. This is the plugin's versioned implementation endpoint, not a proposed general DSH standard.
+
+Developer snapshots, diffs and streaming exports are documented in [Developer audit API v1](developer-audit.md). New source evidence observations retain run/time identity and independent actor versions within a bounded history; old records do not gain invented capture timestamps. Coverage includes retention, storage/collection failures and unknown owners. This remains best-effort metadata capture, not an immutable or complete provider request ledger.

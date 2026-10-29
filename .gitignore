@@ -3,3 +3,8 @@ node_modules/
 artifacts/
 *.tgz
 .DS_Store
+acceptance/
+sessions/
+storages/
+*.jsonl
+*.jsonl.zstd
