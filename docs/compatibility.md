@@ -1,6 +1,6 @@
 # Compatibility and acceptance
 
-Release: 0.2.1. Tested on macOS with Node.js 22.22.2. Declared engines are an installation range, not a claim that every release in the range was tested.
+Current release: 0.2.2; initial provenance acceptance: 0.2.1. Tested on macOS with Node.js 22.22.2. Declared engines are an installation range, not a claim that every release in the range was tested.
 
 | Surface | Host | Evidence |
 |---|---|---|
@@ -22,3 +22,7 @@ At release preparation, npm latest was 0.2.1-rc.2; next was 0.2.1-rc.4 and alpha
 BrowserSkill 0.3.3 defaults to lazy tool registration. Invoke its browser-skill skill normally before calling bsk_* tools. A test that directly called bsk_session while it was absent from the offered request header returned UNKNOWN_TOOL; it is retained as a failed test attempt, not a passing compatibility result. With the normal skill entry, actual collector-off and collector-on requests both succeeded through skill → bsk_session(list) → validate_dsh_ui. Both headers omitted browser tools before activation and exposed them afterwards; first canonical request inputs matched. No BrowserSkill code/configuration was changed or lazy loading disabled.
 
 The prebuilt tarball and a Git source with committed lib files were installed in dedicated profiles. Actual read-only requests completed from each. A clean clone passed all 30 tests, rebuild with byte-identical lib, and package checks without credentials or adjacent source trees. A pnpm profile may warn that the shared dsh-scope peer is missing locally; the plugin resolves the running host's scope instance. Do not install an unrelated scope copy merely to silence that warning.
+
+## 0.2.2 localization
+
+English and Chinese follow the host locale. Web acceptance covered a language switch with open source details, the existing tab caption, source/audit/request/coverage labels and restoration to Chinese. User text stayed unchanged. Automated coverage now includes dictionary/placeholder parity, locale-independent source identity and measurements, cached presentation/error switching, attachment truncation, additive API error keys and the built client title registration (38 tests total). The API retains legacy Chinese fallback text plus semantic label metadata; it does not translate stored conversations. No additional model requests are needed for a language change.

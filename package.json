@@ -1,6 +1,6 @@
 {
   "name": "dsh-context-lite",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "private": true,
   "description": "Read-only context timeline and provenance sidebar for DeepSeek Harness",
@@ -30,7 +30,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.js && node --check src/audit.js && node --check src/provenance.js && node --check src/collector.js && node --check src/origin-store.js && node --check src/client.js",
+    "check": "node --check src/index.js && node --check src/audit.js && node --check src/provenance.js && node --check src/collector.js && node --check src/origin-store.js && node --check src/client.js && node --check src/i18n.js",
     "verify:package": "node scripts/check-package.mjs"
   },
   "dsh": {

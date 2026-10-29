@@ -4,18 +4,18 @@
 
 A read-only context sidebar organized around **timeline** and **provenance**. See what a round retains, where it came from, and whether earlier rounds survive as original text or a summary. The compact view shows composition, sources, newly retained context and current size/capacity. Hover for labels; click to inspect contents and references.
 
-A round ends on completion or an actual user interruption. Steering without stopping stays in the same round. Raw history and compressed history are separate; model work is grouped while plugin contributions remain distinguishable. Automatic collection requires no changes to other plugins. Existing registry entries are inventoried without evaluating providers; unknown owners stay unknown. The UI currently uses Chinese primarily.
+A round ends on completion or an actual user interruption. Steering without stopping stays in the same round. Raw history and compressed history are separate; model work is grouped while plugin contributions remain distinguishable. Automatic collection requires no changes to other plugins. Existing registry entries are inventoried without evaluating providers; unknown owners stay unknown. The sidebar follows the DSH interface language (English or Chinese). Open tabs, details and errors update when the language changes; original content, plugin names, paths and identifiers stay verbatim.
 
 ## Install
 
 Requires DeepSeek Harness and pnpm. This project is distributed on GitHub and is not published to npm.
 
-Download `dsh-context-lite-0.2.1.tgz` from [Releases](https://github.com/hope586/dsh-context-lite/releases), check the provided SHA256, then run:
+Download `dsh-context-lite-0.2.2.tgz` from [Releases](https://github.com/hope586/dsh-context-lite/releases), check the provided SHA256, then run:
 
 ```sh
-dsh plugin --profile web add ./dsh-context-lite-0.2.1.tgz
+dsh plugin --profile web add ./dsh-context-lite-0.2.2.tgz
 # Or install the prebuilt tag:
-dsh plugin --profile web add github:hope586/dsh-context-lite#v0.2.1
+dsh plugin --profile web add github:hope586/dsh-context-lite#v0.2.2
 ```
 
 Reload your managed Web backend using its normal controls; do not start a second Web instance. Open the context icon in the session header or the context entry in the right sidebar. On Desktop, add the extracted local package directory through the official plugin manager and enable it; do not manage the Desktop profile through the CLI. Both distributions include `lib/` and need no install-time build script. See the [official bundle documentation](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.md).

@@ -1,12 +1,18 @@
 import { SurfaceManager } from '@deepseek-ai/dsh-session/surface';
 import { estimateMessage, estimateToolsTokens } from '@deepseek-ai/dsh-token-meter/estimate';
 import {describeSource} from './provenance.js';
+import {label} from './i18n.js';
 
 /** Model-facing text only; unknown blocks remain inspectable as structured content. */
 export function textOf(content) {
   return (Array.isArray(content) ? content : []).map(b => typeof b.text === 'string' ? b.text : `[${b.type || 'unknown'}]`).join('\n');
 }
 const messageOf = e => e.type === 'user/message' ? e.data : e.data?.message;
+const attachmentReference = block => {
+  let truncated=false;
+  const reference=JSON.stringify(block,(_key,value)=>{if(typeof value==='string'&&value.length>2000){truncated=true;return value.slice(0,2000)+'…';}return value;});
+  return {type:block.type,reference,...(truncated?{truncated:true}:{})};
+};
 const slimSource = source => Object.fromEntries(Object.entries(source || {}).filter(([k,v]) => ['kind','plugin','form','path','file','url','windowId','windowTitle','sessionId','senderSessionId','batchId'].includes(k) && ['string','number'].includes(typeof v)));
 const roundStatus = reason => reason?.kind === 'aborted' && reason.reason?.kind === 'user' ? 'interrupted' : reason?.kind === 'completed' ? 'completed' : reason?.kind==='aborted'?'cancelled':reason?.kind==='interrupted'?'recovered':reason?.kind || 'unknown';
 
@@ -38,29 +44,29 @@ export function buildAudit(header, events, { maxVisibleRounds = 120, projections
     const finalSeq = round?.status === 'completed' && lastMessage && !(lastMessage.content || []).some(b => b.type === 'tool_use' || b.type === 'tool_call') && !log[lastAssistant.seq].data.interrupted ? lastAssistant.seq : null;
     const segments = [];
     const tools = estimateToolsTokens(epoch);
-    if (tools) segments.push({id:`tools-${epochSeq}`,type:'base',sourceKey:'host-tools',title:'DSH · 工具定义',provenance:describeSource({kind:'host-tools'},{observed:log[epochSeq]&&originFor(log[epochSeq])}),tokens:tools,refs:[],headerSeq:epochSeq});
+    if (tools) segments.push({id:`tools-${epochSeq}`,type:'base',sourceKey:'host-tools',title:'DSH · 工具定义',titleLabel:label('sourceTools'),provenance:describeSource({kind:'host-tools'},{observed:log[epochSeq]&&originFor(log[epochSeq])}),tokens:tools,refs:[],headerSeq:epochSeq});
     for (const node of nodes) {
-      let type, title, key;
-      if (node.type === 'system/message' || node.type === 'developer/message') { type='base';title='宿主基础上下文';key='host'; }
-      else if (node.summarySeq !== undefined) {type='summary';title='历史压缩信息';key=`summary:${node.summaryId}`;}
-      else if (!node.originRounds.includes(round?.id)) {type='history';title='历史未压缩信息';key='history';}
-      else if (node.type === 'user/message' && node.source.kind === 'user') {type='prompt';title=node.seq === round?.promptSeq ? '用户 · 本轮输入' : '用户 · 中途引导';key='user';}
-      else if (node.type === 'assistant/message' && node.seq === finalSeq) {type='final';title='汇报';key='final';}
-      else if (node.type === 'assistant/message' || node.type === 'tool/result') {type='work';title='模型工作上下文';key='work';}
+      let type, title, key, titleKey;
+      if (node.type === 'system/message' || node.type === 'developer/message') { titleKey='segmentBase';type='base';title='宿主基础上下文';key='host'; }
+      else if (node.summarySeq !== undefined) {titleKey='segmentSummary';type='summary';title='历史压缩信息';key=`summary:${node.summaryId}`;}
+      else if (!node.originRounds.includes(round?.id)) {titleKey='segmentHistory';type='history';title='历史未压缩信息';key='history';}
+      else if (node.type === 'user/message' && node.source.kind === 'user') {titleKey=node.seq===round?.promptSeq?'segmentPrompt':'segmentSteering';type='prompt';title=node.seq === round?.promptSeq ? '用户 · 本轮输入' : '用户 · 中途引导';key='user';}
+      else if (node.type === 'assistant/message' && node.seq === finalSeq) {titleKey='segmentFinal';type='final';title='汇报';key='final';}
+      else if (node.type === 'assistant/message' || node.type === 'tool/result') {titleKey='segmentWork';type='work';title='模型工作上下文';key='work';}
       else {type='plugin';title=node.provenance.title;key=node.provenance.key;}
-      const provenance=type==='work'?{key:'work',title:'模型工作上下文',method:'模型输出与工具结果',identifiers:[]}:type==='history'?{key:'history',title,method:'历史原文沿用',identifiers:[]}:node.provenance;
+      const provenance=type==='work'?{key:'work',title:'模型工作上下文',titleLabel:label('segmentWork'),method:'模型输出与工具结果',methodLabel:label('methodWork'),identifiers:[]}:type==='history'?{key:'history',title,titleLabel:label('segmentHistory'),method:'历史原文沿用',methodLabel:label('methodHistory'),identifiers:[]}:node.provenance;
       const isNew = !['base','summary','history'].includes(type) && node.originRounds.includes(round?.id);
       const last = segments.at(-1);
       // Only adjacent equal producers in one admitted phase merge. Work is a continuous run until another source intervenes.
       const merge = last && last.sourceKey === key && last.type === type && (type === 'work' || type === 'history' || (last.phase === node.phase && type !== 'summary'));
       if (merge) {last.provenance={...last.provenance,identifiers:[...new Set([...(last.provenance?.identifiers||[]),...(provenance?.identifiers||[])])]};last.refs.push(node);last.tokens+=node.tokens;last.added+=(isNew?node.tokens:0);}
-      else segments.push({id:`node-${node.seq}`,type,title,provenance,sourceKey:key,phase:node.phase,tokens:node.tokens,added:isNew?node.tokens:0,refs:[node]});
+      else segments.push({id:`node-${node.seq}`,type,title,titleLabel:titleKey?label(titleKey):provenance.titleLabel,provenance,sourceKey:key,phase:node.phase,tokens:node.tokens,added:isNew?node.tokens:0,refs:[node]});
     }
     const pluginNode=n=>n.type==='user/message' && n.source.kind!=='user' && n.summarySeq===undefined;
     const identities=new Map();
     for(const n of [...(round?.baseline||[]).map(seq=>records.get(seq)).filter(Boolean),...nodes,...[...records.values()].filter(n=>n.round===round?.id)]){if(!pluginNode(n))continue;const key=n.provenance.key;if(!identities.has(key))identities.set(key,{provenance:n.provenance,seqs:[]});const item=identities.get(key);item.seqs.push(n.seq);item.provenance={...item.provenance,identifiers:[...new Set([...item.provenance.identifiers,...n.provenance.identifiers])]};}
     const retainedSet=new Set(nodes.map(n=>n.seq)),baseline=new Set(round?.baseline||[]);
-    const changes=[...identities].map(([source,{provenance,seqs}])=>{const ids=[...new Set(seqs)];return {source,title:provenance.title,provenance,added:ids.filter(seq=>retainedSet.has(seq)&&!baseline.has(seq)),removed:ids.filter(seq=>baseline.has(seq)&&!retainedSet.has(seq)),retained:ids.filter(seq=>baseline.has(seq)&&retainedSet.has(seq)),transient:ids.filter(seq=>!baseline.has(seq)&&!retainedSet.has(seq))};});
+    const changes=[...identities].map(([source,{provenance,seqs}])=>{const ids=[...new Set(seqs)];return {source,title:provenance.title,titleLabel:provenance.titleLabel,provenance,added:ids.filter(seq=>retainedSet.has(seq)&&!baseline.has(seq)),removed:ids.filter(seq=>baseline.has(seq)&&!retainedSet.has(seq)),retained:ids.filter(seq=>baseline.has(seq)&&retainedSet.has(seq)),transient:ids.filter(seq=>!baseline.has(seq)&&!retainedSet.has(seq))};});
     const total=segments.reduce((n,s)=>n+s.tokens,0),added=segments.reduce((n,s)=>n+(s.added||0),0);
     return { cutSeq,total,added,changes,capacity:context.contextWindow ?? null,provider:context.provider || epoch?.config?.provider || null,model:context.model || epoch?.config?.model || null,headerSeq:epochSeq,segments };
   };
@@ -68,7 +74,7 @@ export function buildAudit(header, events, { maxVisibleRounds = 120, projections
     if (event.seq !== log.length) throw new Error('日志序号不连续，无法重建上下文');
     if (event.type === 'turn/start') {
       if (active) {active.status='unknown';Object.assign(active,snapshot(active,event.seq-1));previousTotal=active.total;}
-      active={id:rounds.length+1,hostTurn:event.data.turn,startSeq:event.seq,endSeq:null,time:event.time,title:'本轮工作',promptSeq:null,status:'running',requests:[],baseline:[...surface.nodes]};
+      active={id:rounds.length+1,hostTurn:event.data.turn,startSeq:event.seq,endSeq:null,time:event.time,title:'本轮工作',titleLabel:label('roundWork'),promptSeq:null,status:'running',requests:[],baseline:[...surface.nodes]};
       rounds.push(active);
     }
     if (event.type === 'step/start') phase=`${event.data.turn}:${event.data.step}`;
@@ -77,7 +83,7 @@ export function buildAudit(header, events, { maxVisibleRounds = 120, projections
     if (event.type === 'tool/call') calls.set(event.data.callId,event);
     if (event.type === 'compaction/summary') summaries.set(event.seq,{seq:event.seq,...event.data});
     if (event.type === 'user/message' && event.data.source?.kind === 'user' && active?.promptSeq === null && event.surfaceOp === 'append') {
-      active.promptSeq=event.seq;active.title=textOf(event.data.content).replace(/\s+/g,' ').slice(0,70) || '图片或附件输入';
+      active.promptSeq=event.seq;const prompt=textOf(event.data.content).replace(/\s+/g,' ').slice(0,70);active.title=prompt||'图片或附件输入';active.titleLabel=prompt?undefined:label('attachmentsInput');
     }
     if (event.type === 'assistant/message' || event.type === 'assistant/attempt') {
       const input=snapshot(active,event.seq-1);
@@ -97,17 +103,17 @@ export function buildAudit(header, events, { maxVisibleRounds = 120, projections
   const visible=rounds.slice(-maxVisibleRounds);
   const last=rounds.at(-1);
   const between=last && last.endSeq!==null && events.some(e=>e.seq>last.endSeq&&(e.surfaceOp!==undefined||e.type==='request/header'));
-  const current=last&&between?{...last,...snapshot(last,events.at(-1).seq),isCurrent:true,title:'轮间上下文更新',delta:0}:null;
+  const current=last&&between?{...last,...snapshot(last,events.at(-1).seq),isCurrent:true,title:'轮间上下文更新',titleLabel:label('betweenRounds'),delta:0}:null;
   if(current){current.delta=current.total-last.total;current.added=0;}
   return {sessionId:header.id,cursor:events.at(-1)?.seq ?? -1,rounds,current,projections,inheritedEventCount,maxVisibleRounds,hiddenRounds:rounds.length-visible.length,records,summaries,calls,requests,header,
-    limits:['分项与窗口大小采用 DSH 固定估算，不是提供方账单。','请求详情按响应/尝试结算前日志重建；宿主未持久记录每次适配后的线缆请求及所有内部重试。','摘要来源覆盖不证明其中每个细节仍被保留；外部窗口身份仅在来源有记录时显示。']};
+    limitLabels:['limitEstimate','limitRequest','limitSummary'].map(key=>label(key)),limits:['分项与窗口大小采用 DSH 固定估算，不是提供方账单。','请求详情按响应/尝试结算前日志重建；宿主未持久记录每次适配后的线缆请求及所有内部重试。','摘要来源覆盖不证明其中每个细节仍被保留；外部窗口身份仅在来源有记录时显示。']};
 }
 
 /** The small client payload has no raw messages or provider replay data. */
 export function overview(audit, beforeRound) {
   const candidates=beforeRound?audit.rounds.filter(r=>r.id<beforeRound):audit.rounds;
   const page=candidates.slice(-(audit.maxVisibleRounds||120));
-  return {schemaVersion:1,current:audit.current?{...audit.current,baseline:undefined,requests:[]}:null,sessionId:audit.sessionId,cursor:audit.cursor,hiddenRounds:candidates.length-page.length,limits:audit.limits,rounds:page.map(({baseline,...r})=>({...r,requests:r.requests.map(q=>({id:q.id,settlementSeq:q.settlementSeq,turn:q.turn,step:q.step,status:q.status,inputTotal:q.inputTotal,usage:q.usage,basis:q.basis})),segments:r.segments.map(s=>({...s,refs:s.refs.map(n=>({...n,source:n.source}))}))}))};
+  return {schemaVersion:1,current:audit.current?{...audit.current,baseline:undefined,requests:[]}:null,sessionId:audit.sessionId,cursor:audit.cursor,hiddenRounds:candidates.length-page.length,limits:audit.limits,limitLabels:audit.limitLabels,rounds:page.map(({baseline,...r})=>({...r,requests:r.requests.map(q=>({id:q.id,settlementSeq:q.settlementSeq,turn:q.turn,step:q.step,status:q.status,inputTotal:q.inputTotal,usage:q.usage,basis:q.basis})),segments:r.segments.map(s=>({...s,refs:s.refs.map(n=>({...n,source:n.source}))}))}))};
 }
 
 /** Page an exact round's retained nodes; referenced earlier source events can be read separately. */
@@ -119,10 +125,10 @@ export function readDetail(audit, events, {roundId,segmentId,offset=0,limit=40,p
     const effective=atSeq===undefined?null:new SurfaceManager(events.slice(0,atSeq+1),0,audit.projections||[]).deriveEventMessage(event);
     const msg=projected||effective||messageOf(event);
     const text=msg?textOf(msg.content):event.type==='compaction/summary'?textOf(event.data.summary):event.type==='request/header'?JSON.stringify(event.data.header.tools||[],null,2):JSON.stringify(event.data,null,2);
-    return {seq:event.seq,time:event.time,type:event.type,sessionId:audit.sessionId,parentSession:seq<audit.inheritedEventCount?audit.header.parentSession??null:null,bodyBasis:projected||effective?'projected-at-cut':'original-event',prunedBySeq:audit.records.get(seq)?.prunedBySeq??null,attachmentRefs:(msg?.content||[]).filter(b=>b.type!=='text').map(b=>({type:b.type,reference:JSON.stringify(b,(_k,v)=>typeof v==='string'&&v.length>2000?v.slice(0,2000)+'…（引用预览截断）':v)})),source:msg?.source || null,provenance:audit.records.get(seq)?.provenance||describeSource(msg?.source,{eventType:event.type,toolName:audit.calls.get(msg?.source?.callId)?.data.name}),sourceEventSeqs:event.sourceEventSeqs || [],surfaceOp:event.surfaceOp || null,text:text.slice(offset,offset+previewCharacters),textOffset:offset,textLength:text.length,moreText:offset+previewCharacters<text.length,
-      ...(event.type==='compaction/summary'?{compaction:{...event.data,summary:undefined,rawOutput:undefined},auxiliaryInput:{systemSeqs:new SurfaceManager(events.slice(0,seq),0,audit.projections||[]).nodes.filter(n=>events[n].type==='system/message').slice(0,1),toolsHeaderSeq:events.slice(0,seq).findLast(e=>e.type==='request/header')?.seq??null,sourceSeqs:event.data.shadowedSeqs,exactTemplateRecorded:false,note:'源消息集合可核对；摘要指令模板未完整持久记录，不能声称这是完整的摘要调用输入。'}}:{}),
+    return {seq:event.seq,time:event.time,type:event.type,sessionId:audit.sessionId,parentSession:seq<audit.inheritedEventCount?audit.header.parentSession??null:null,bodyBasis:projected||effective?'projected-at-cut':'original-event',prunedBySeq:audit.records.get(seq)?.prunedBySeq??null,attachmentRefs:(msg?.content||[]).filter(b=>b.type!=='text').map(attachmentReference),source:msg?.source || null,provenance:audit.records.get(seq)?.provenance||describeSource(msg?.source,{eventType:event.type,toolName:audit.calls.get(msg?.source?.callId)?.data.name}),sourceEventSeqs:event.sourceEventSeqs || [],surfaceOp:event.surfaceOp || null,text:text.slice(offset,offset+previewCharacters),textOffset:offset,textLength:text.length,moreText:offset+previewCharacters<text.length,
+      ...(event.type==='compaction/summary'?{compaction:{...event.data,summary:undefined,rawOutput:undefined},auxiliaryInput:{systemSeqs:new SurfaceManager(events.slice(0,seq),0,audit.projections||[]).nodes.filter(n=>events[n].type==='system/message').slice(0,1),toolsHeaderSeq:events.slice(0,seq).findLast(e=>e.type==='request/header')?.seq??null,sourceSeqs:event.data.shadowedSeqs,exactTemplateRecorded:false,noteLabel:label('summaryInputNote'),note:'源消息集合可核对；摘要指令模板未完整持久记录，不能声称这是完整的摘要调用输入。'}}:{}),
       ...(event.type==='tool/result'?{toolCall:audit.calls.get(msg?.source?.callId)?.data || null}:{}),
-      ...(event.type==='assistant/attempt'?{note:'该尝试没有生成保留消息，不计入上下文组成。'}:{})};
+      ...(event.type==='assistant/attempt'?{noteLabel:label('attemptNote'),note:'该尝试没有生成保留消息，不计入上下文组成。'}:{})};
   }
   const round=view==='current'?audit.current:audit.rounds.find(r=>r.id===roundId),segment=round?.segments.find(s=>s.id===segmentId);
   if(!segment)return null;

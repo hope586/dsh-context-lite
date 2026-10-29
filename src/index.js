@@ -49,7 +49,7 @@ function mountApi(ctx,config,collector) {
   };
   ctx.effect(()=>ctx.connection.fetch.register({path:'/api/dsh-context-lite/audit',methods:['GET'],requestBody:'buffered',fetch:async request=>{
     const parsed=querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
-    if(!parsed.success)return json({ok:false,error:'查询参数不正确'},400);
+    if(!parsed.success)return json({ok:false,error:'查询参数不正确',errorKey:'errorInvalidQuery'},400);
     const query=parsed.data,signal=AbortSignal.any([request.signal,lifetime.signal]);
     // Share only same-session simultaneous reads. The originating request never owns another reader's cancellation.
     let task=pending.get(query.sessionId);
@@ -57,18 +57,18 @@ function mountApi(ctx,config,collector) {
     try {
       const {audit,events}=await task;signal.throwIfAborted();
       if(query.kind==='origins')return json({ok:true,value:{sessionId:query.sessionId,...collector.inspect(query.sessionId)}});
-      if(query.kind==='overview')return json({ok:true,value:{...overview(audit,query.beforeRound),version:typeof __DCL_VERSION__==='string'?__DCL_VERSION__:'0.2.1',collection:collector.status(),build:typeof __DCL_BUILD__==='string'?__DCL_BUILD__:'source'}});
+      if(query.kind==='overview')return json({ok:true,value:{...overview(audit,query.beforeRound),version:typeof __DCL_VERSION__==='string'?__DCL_VERSION__:'0.2.2',collection:collector.status(),build:typeof __DCL_BUILD__==='string'?__DCL_BUILD__:'source'}});
       if(query.kind==='request') {
         const req=audit.requests.find(r=>r.id===query.requestId);
-        if(!req)return json({ok:false,error:'请求记录不存在'},404);
+        if(!req)return json({ok:false,error:'请求记录不存在',errorKey:'errorRequestMissing'},404);
         return json({ok:true,value:req});
       }
       const value=readDetail(audit,events,{...query,seq:query.kind==='event'?query.seq:undefined,limit:config.detailPageSize,previewCharacters:config.previewCharacters});
-      return value?json({ok:true,value}):json({ok:false,error:'来源记录不存在'},404);
+      return value?json({ok:true,value}):json({ok:false,error:'来源记录不存在',errorKey:'errorSourceMissing'},404);
     } catch(error) {
-      if(signal.aborted)return json({ok:false,error:'查询已取消'},499);
+      if(signal.aborted)return json({ok:false,error:'查询已取消',errorKey:'errorCancelled'},499);
       const missing=['SESSION_QUERY_SESSION_NOT_FOUND','SESSION_QUERY_EVENT_NOT_FOUND'].includes(error?.code);
-      return json({ok:false,error:missing?'会话不存在或已移除':'日志无法完整重建；此会话的记录格式或来源解释器可能不受支持。'},missing?404:422);
+      return json({ok:false,error:missing?'会话不存在或已移除':'日志无法完整重建；此会话的记录格式或来源解释器可能不受支持。',errorKey:missing?'errorSessionMissing':'errorReconstruction'},missing?404:422);
     }
   }}),'context-lite: authenticated audit read');
 }

@@ -9,22 +9,22 @@
 - 自动观察来源，不要求其他插件填写特殊字段或修改代码。启动时轻量补查现存注册项；无法确认的调用方明确显示“来源方未确认”。
 - 复用 DSH 的会话、主题、侧栏与固定估算器。不控制注入、压缩、权限或模型执行，不额外调用模型，不提供独立统计圆环或 `/context` 技能。
 
-当前界面主要使用中文。精确行为与限制见 [来源说明](docs/provenance.md)，实测环境见 [兼容性](docs/compatibility.md)。
+界面跟随 DSH 的中文或英文设置，已打开的标签页、详情与错误提示会随语言即时更新；用户原文、插件名称、路径和标识符保持原样。精确行为与限制见 [来源说明](docs/provenance.md)，实测环境见 [兼容性](docs/compatibility.md)。
 
 ## 安装
 
 需要已安装的 DeepSeek Harness 和 pnpm。首发通过 GitHub 分发，尚未发布到 npm。
 
-从 [Releases](https://github.com/hope586/dsh-context-lite/releases) 下载预构建的 `dsh-context-lite-0.2.1.tgz`，校验同页 SHA256 后安装：
+从 [Releases](https://github.com/hope586/dsh-context-lite/releases) 下载预构建的 `dsh-context-lite-0.2.2.tgz`，校验同页 SHA256 后安装：
 
 ```sh
-dsh plugin --profile web add ./dsh-context-lite-0.2.1.tgz
+dsh plugin --profile web add ./dsh-context-lite-0.2.2.tgz
 ```
 
 也可以安装带预构建产物的 Git tag：
 
 ```sh
-dsh plugin --profile web add github:hope586/dsh-context-lite#v0.2.1
+dsh plugin --profile web add github:hope586/dsh-context-lite#v0.2.2
 ```
 
 按你管理 Web 的原有方式重启后端，然后打开会话标题栏的“上下文”图标，或右侧栏开始页的“上下文”。不要为重载再启动第二个 Web 服务。Desktop 请通过官方插件管理页添加本地解压目录并启用；不要从 CLI 绕过 Desktop 对 profile 的管理。
