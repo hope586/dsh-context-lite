@@ -16,3 +16,9 @@ Live comparisons check the canonical first-request surface and request header, e
 The local synthetic collection benchmark measures callbacks, admission and bounded metadata only; it excludes disk, network and model time. It must not be interpreted as end-to-end latency. CI uses synthetic tests and package checks, without model keys. Linux CI success does not establish Linux/Windows Desktop acceptance. Cross-process metadata freshness, all competing wrappers, arbitrary future hosts and long-running endurance have not been exhaustively tested.
 
 At release preparation, npm latest was 0.2.1-rc.2; next was 0.2.1-rc.4 and alpha was 0.2.2-alpha.2. Those tags are time-sensitive and do not extend the acceptance table. The working hosts were not upgraded as part of this release.
+
+## BrowserSkill lazy activation
+
+BrowserSkill 0.3.3 defaults to lazy tool registration. Invoke its browser-skill skill normally before calling bsk_* tools. A test that directly called bsk_session while it was absent from the offered request header returned UNKNOWN_TOOL; it is retained as a failed test attempt, not a passing compatibility result. With the normal skill entry, actual collector-off and collector-on requests both succeeded through skill → bsk_session(list) → validate_dsh_ui. Both headers omitted browser tools before activation and exposed them afterwards; first canonical request inputs matched. No BrowserSkill code/configuration was changed or lazy loading disabled.
+
+The prebuilt tarball and a Git source with committed lib files were installed in dedicated profiles. Actual read-only requests completed from each. A clean clone passed all 30 tests, rebuild with byte-identical lib, and package checks without credentials or adjacent source trees. A pnpm profile may warn that the shared dsh-scope peer is missing locally; the plugin resolves the running host's scope instance. Do not install an unrelated scope copy merely to silence that warning.
