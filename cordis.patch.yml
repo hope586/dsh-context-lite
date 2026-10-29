@@ -1,0 +1,8 @@
+- insert:
+    - id: dsh-context-lite
+      name: dsh-context-lite
+      config:
+        maxCachedSessions: 4
+        maxVisibleRounds: 120
+        detailPageSize: 40
+        previewCharacters: 12000

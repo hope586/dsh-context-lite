@@ -1,0 +1,6 @@
+[
+  "@deepseek-ai/dsh-brand",
+  "@deepseek-ai/dsh-session",
+  "@deepseek-ai/dsh-token-meter",
+  "zod"
+]
