@@ -11,11 +11,17 @@ The sidebar follows DSH's canonical session surface. It never controls which con
 
 Installed package names, arbitrary source tags, text similarity and counts of cleanup effects are not enough to prove an owner. Unknown or ambiguous callers remain unknown. Current inventory is not used to retroactively assert ownership of old or removed registrations.
 
+Version 0.3.1 also observes `agent/pre-step` middleware contributions and live `Session.append()` surface writes. For a middleware result, unchanged incoming/downstream messages do not become the outer listener's contributions. Only an exact accepted message identity/content fingerprint becomes a provenance record; proposal rejection or failure creates none. A direct replacement keeps the observed replacement author, instead of inheriting the tool definition's author. Unobserved replacements remain unknown.
+
+The native ToolRuntime `additionalContexts` handoff records the tool/call relationship. Observed `tools/execute` or `tools/post-execute` contributions retain their actual middleware author through the loop-owned inbox transfer. A final result alone cannot prove who called `deferContext` or authored an otherwise unseen additional message: its entry method is known but the owner stays unknown. Winning tool registration describes definition ownership, not a complete chain of every post-policy or adapter transformation.
+
 ## Bounds and lifecycle
 
 One scan per service instance is capped at 4096 entries; observed registration references are capped at 4096. Pending admission references are capped at 4000. Stored metadata defaults to 64 sessions × 2000 records, with explicit record trimming. Session audit cache defaults to 4 sessions; bodies are paged. Snapshot discovery is not a periodic sweep or a full scan per request. Definitions are held by weak reference; agent wrappers are restored when agents are disposed, and observation wrappers/listeners are released on plugin teardown. Another wrapper installed later is not overwritten during cleanup.
 
 Admission APIs and registry adapters return the original results and errors. The collector only observes accepted events and keeps metadata separate from message bodies. This is implementation behavior in a shared JavaScript process, not tamper-proof attribution or security isolation. The Loader, event hooks and layered registries include version-specific internals. Missing shapes degrade coverage rather than creating owners from guesses.
+
+Message fingerprints are transient comparisons over plain JSON; only hashes and normalized source metadata are retained. Capture never invokes producer accessors. Fingerprinting is bounded to 1 MiB of string characters, 20,000 visited values and depth 64; unsupported/oversized messages still follow their original host path and expose missing attribution/collector failures. Existing live sessions are discovered once per SessionStore (up to 4096); newly created sessions are attached through native lifecycle events, and their append wrappers are restored on disposal. Seed/fork events are not new admissions and do not acquire invented original callers.
 
 ## Measurement
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 — source update, not yet released
+
+- Observe native pre-step message contributions and live Session.append surface updates, attributing only accepted exact messages. Keep original return values, promises, errors, ordering and lifecycle cleanup.
+- Preserve middleware ownership for additional tool contexts across native inbox transport; identify an unobserved native handoff without guessing its author. Later tool-result replacements no longer inherit the old tool's owner.
+- Recognize native developer tool-definition updates and align replay/estimation dependencies with DSH 0.2.1-rc.5. Raise the declared minimum host accordingly.
+- Add Chinese/English entry-method labels and document native-path coverage, source-evidence limits and inherited history. No new model tools or calls, producer-specific mappings or AutoMemory dependency.
+- Isolated official-runtime observer absent/early/late comparison preserved logical inputs and continued after unload; public regression coverage includes the new native admission paths.
+
 ## 0.3.0 — 2026-10-29
 
 ### 中文

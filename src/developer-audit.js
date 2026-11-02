@@ -19,6 +19,8 @@ function sourceOf(provenance,source,observed) {
   if(observed?.producer)value.actor=observed.producer;
   else if(p.callerType&&p.callerId)value.actor=Object.fromEntries(Object.entries({type:p.callerType,id:p.callerId,version:p.version,module:p.module,path:p.file}).filter(([,v])=>v!==undefined));
   if(observed?.method||p.api)value.entryMethod=observed?.method||p.api;
+  if(observed?.toolName)value.toolName=observed.toolName;
+  if(observed?.callId)value.callId=observed.callId;
   if(observed?.contributors)value.contributors=observed.contributors;
   else if(p.contributors)value.contributors=p.contributors.map(({title,titleLabel,...c})=>c);
   return value;

@@ -1,6 +1,6 @@
 {
   "name": "dsh-context-lite",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "private": true,
   "description": "Read-only context timeline and provenance sidebar for DeepSeek Harness",
@@ -28,7 +28,7 @@
   "license": "MIT",
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
-    "dsh": ">=0.2.0-rc.2 <0.3.0"
+    "dsh": ">=0.2.1-rc.5 <0.3.0"
   },
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -51,15 +51,15 @@
     }
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "4.0.4",
-    "@deepseek-ai/dsh-scope": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-session": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-token-meter": "0.2.0-rc.2",
+    "@deepseek-ai/cordis": "4.0.5",
+    "@deepseek-ai/dsh-scope": "0.2.1-rc.5",
+    "@deepseek-ai/dsh-session": "0.2.1-rc.5",
+    "@deepseek-ai/dsh-token-meter": "0.2.1-rc.5",
     "esbuild": "0.25.12",
     "zod": "4.4.3"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-scope": ">=0.2.0-rc.2 <0.3.0"
+    "@deepseek-ai/dsh-scope": ">=0.2.1-rc.5 <0.3.0"
   },
   "author": "hope586",
   "packageManager": "pnpm@10.33.0",

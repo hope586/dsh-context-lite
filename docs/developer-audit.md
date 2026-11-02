@@ -68,6 +68,8 @@ Stable `coverage.findings` codes:
 
 An installed projection may change over time or disappear. The API cannot prove the old projected text from raw events alone. `includeContent=true` captures the effective content **at export time**, with original event data for comparison; it does not manufacture a historical wire capture. Unavailable interpreters fail reconstruction explicitly. Preserve an export when you need a fixed inspection artifact.
 
+Source entry methods added by 0.3.1 are `agent.pre-step`, `session.append`, `tools.execute`, `tools.post-execute` and `tool.additional-context`. A native additional-context transfer may include `toolName` and `callId`; these identify the actual handoff even when ownership remains missing. Tool-result replacements retain replacement provenance, not an inferred repeat execution of the original registered tool. Native developer messages with source kind `tool-registry` are retained and measured using the current DSH replay helpers. These are additive v1 fields/values, not an upstream protocol or proof of adapter wire delivery.
+
 ## Export format
 
 JSONL has one record per line. JSON has an array of the same records. Order: `manifest`, individual `item` records, `relationship` records, bounded `origin-evidence` records, source `event` records, then `complete`.
