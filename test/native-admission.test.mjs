@@ -6,6 +6,7 @@ import {collectOrigins} from '../src/collector.js';
 import {buildAudit} from '../src/audit.js';
 import {describeSource} from '../src/provenance.js';
 import {contextSnapshot} from '../src/developer-audit.js';
+import {OriginStore} from '../src/origin-store.js';
 
 const message=(id,text=id)=>({id,role:'user',source:{kind:'synthetic-context'},content:[{type:'text',text}]});
 async function setup({late=false}={}) {
@@ -100,9 +101,16 @@ test('native developer tool changes are labeled and tool replacements keep their
   const replaced=add('tool/result',{turn:1,step:1,message:{...tool,content:[{type:'text',text:'replaced'}]}},{surfaceOp:{op:'replace',startSeq:original.seq,endSeq:original.seq},sourceEventSeqs:[original.seq]});
   const native=describeSource({kind:'tool-registry'},{eventType:'developer/message'});assert.equal(native.evidence,'native');assert.equal(native.key,'native:tool-registry');
   const producer={type:'plugin',id:'new-author',name:'new author'};
-  const audit=buildAudit({id:'synthetic-audit'},events,{originFor:e=>e===call?{contributors:[{producer:{type:'plugin',id:'old-author'},evidence:'runtime-registration'}]}:e===replaced?{producer,method:'session.append',evidence:'runtime'}:undefined});
+  const store=new OriginStore();
+  store.record('synthetic-audit',call.seq,{contributors:[{producer:{type:'plugin',id:'old-author'},evidence:'runtime-registration'}]});
+  store.record('synthetic-audit',original.seq,{producer:{type:'plugin',id:'native-loop',native:true},method:'session.append',evidence:'runtime'});
+  store.record('synthetic-audit',replaced.seq,{producer,method:'session.append',evidence:'runtime'});
+  const audit=buildAudit({id:'synthetic-audit'},events,{originFor:e=>store.originFor('synthetic-audit',e.seq)});
   assert.equal(audit.records.get(original.seq).provenance.callerId,'old-author');
   assert.equal(audit.records.get(replaced.seq).provenance.callerId,'new-author');
+  const beforeReplacement=contextSnapshot({audit,events,origins:store.inspect('synthetic-audit'),collection:{}},{atSeq:original.seq});
+  const apiSource=beforeReplacement.items.find(i=>i.ref.seq===original.seq).source;
+  assert.equal(apiSource.actor.id,'old-author');assert.equal(apiSource.entryMethod,'tool.result');
   const unknown=buildAudit({id:'synthetic-audit'},events,{originFor:e=>e===call?{contributors:[{producer:{type:'plugin',id:'old-author'}}]}:undefined});
   assert.equal(unknown.records.get(replaced.seq).provenance.callerId,undefined);
   assert.equal(unknown.records.get(replaced.seq).provenance.evidence,'missing');
