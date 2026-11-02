@@ -25,7 +25,10 @@ export function buildAudit(header, events, { maxVisibleRounds = 120, projections
   const metaFor = event => {
     const msg = messageOf(event), summary = summaryFor(event);
     let observed=originFor(event);
-    if(event.type==='tool/result'){const call=calls.get(msg?.source?.callId),registered=call&&originFor(call);if(registered?.contributors?.length===1)observed={...registered,...(registered.contributors[0].producer?{producer:registered.contributors[0].producer}:{}),method:'tool.result',evidence:registered.contributors[0].evidence||'runtime-registration'};}
+    // A replacement is a later context producer, not another execution of the
+    // original tool. Missing replacement ownership must remain unknown too.
+    if(event.type==='tool/result'&&typeof event.surfaceOp!=='object'){const call=calls.get(msg?.source?.callId),registered=call&&originFor(call);if(registered?.contributors?.length===1)observed={...registered,...(registered.contributors[0].producer?{producer:registered.contributors[0].producer}:{}),method:'tool.result',evidence:registered.contributors[0].evidence||'runtime-registration'};}
+    if(event.type==='tool/result'&&typeof event.surfaceOp==='object'&&!observed?.producer)observed={...observed,unobservedReplacement:true};
     const originals = (event.sourceEventSeqs || []).map(seq => records.get(seq)).filter(Boolean);
     const originRounds = summary ? [...new Set(summary.shadowedSeqs.flatMap(seq => records.get(seq)?.originRounds || []))] : originals.length ? [...new Set(originals.flatMap(r => r.originRounds))] : active ? [active.id] : [];
     return { seq:event.seq, time:event.time, type:event.type, round:active?.id ?? null, originRounds,

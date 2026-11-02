@@ -13,7 +13,7 @@ class Prompt extends Service {
   assemble(context){const names=this.layers.merge(context.scope,l=>l.sections);return this.lastPromise=Promise.resolve({sections:[...names.values()],contexts:[]});}
 }
 function session(ctx,id='session-test'){
-  const events=[];return {id,events,append(type,data){const event={seq:events.length,type,data};events.push(event);ctx.emit('session/event',this,event);return event;}};
+  const events=[];return {id,events,append(type,data,opts={}){const event={seq:events.length,type,data,...opts};events.push(event);ctx.emit('session/event',this,event);return event;}};
 }
 function agentFor(ctx,id){
   const s=session(ctx,id),queue=[];

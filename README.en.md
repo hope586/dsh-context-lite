@@ -6,6 +6,8 @@ A read-only context sidebar organized around **timeline** and **provenance**. Se
 
 **v0.3.0** adds a thin developer context audit layer over DSH's native log: structured snapshots, diffs and JSON/JSONL exports for debugging plugin injection, attribution, compression, context occupancy and window limits. The sidebar and its existing read API remain compatible.
 
+Current source **0.3.1** adds native `agent/pre-step` contribution and direct `Session.append()` observation, plus additional-tool-context and native tool-definition-update identification. It requires DSH **0.2.1-rc.5 or a compatible later 0.2.x version**; the declared range is not a test claim for every version. No new Release/tag has been created for this change. The v0.3.0 downloads below remain the previous release; to test the fix, build this source or install the prebuilt `lib/` from a reviewed commit. See [entry-point coverage](docs/compatibility.md#native-admission-coverage-in-031).
+
 A round ends on completion or an actual user interruption. Steering without stopping stays in the same round. Raw history and compressed history are separate; model work is grouped while plugin contributions remain distinguishable. Automatic collection requires no changes to other plugins. Existing registry entries are inventoried without evaluating providers; unknown owners stay unknown. The sidebar follows the DSH interface language (English or Chinese). Open tabs, details and errors update when the language changes; original content, plugin names, paths and identifiers stay verbatim.
 
 ## Install

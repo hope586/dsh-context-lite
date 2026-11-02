@@ -64,7 +64,7 @@ function mountApi(ctx,config,collector) {
     try{
       const value=await sharedRead(query.sessionId);signal.throwIfAborted();
       if(query.expectedCursor!==undefined&&query.expectedCursor!==value.audit.cursor||query.expectedOriginRevision!==undefined&&query.expectedOriginRevision!==value.originRevision||query.expectedCaptureRunId!==undefined&&query.expectedCaptureRunId!==collector.store.captureRunId||query.expectedSourceRevision!==undefined&&query.expectedSourceRevision!==value.sourceRevision)return json({ok:false,error:{code:'OBSERVATION_CHANGED',message:'Log or evidence changed; restart pagination.'}},409);
-      const bundle={...value,collection:{...collector.status(),observedAt:Date.now()},includeContent:query.includeContent,version:typeof __DCL_VERSION__==='string'?__DCL_VERSION__:'0.3.0',build:typeof __DCL_BUILD__==='string'?__DCL_BUILD__:'source'};
+      const bundle={...value,collection:{...collector.status(),observedAt:Date.now()},includeContent:query.includeContent,version:typeof __DCL_VERSION__==='string'?__DCL_VERSION__:'0.3.1',build:typeof __DCL_BUILD__==='string'?__DCL_BUILD__:'source'};
       if(operation==='diff'){
         const {changes,relationships,surfaceUpdates,...manifest}=contextDiff(bundle,query.fromSeq,query.toSeq);
         return json({ok:true,value:{...manifest,changes:changes.slice(query.offset,query.offset+query.limit),relationships:relationships.slice(query.offset,query.offset+query.limit),surfaceUpdates:surfaceUpdates.slice(query.offset,query.offset+query.limit),pagination:{offset:query.offset,limit:query.limit,changeCount:changes.length,relationshipCount:relationships.length,surfaceUpdateCount:surfaceUpdates.length,more:query.offset+query.limit<Math.max(changes.length,relationships.length,surfaceUpdates.length)}}});
@@ -88,7 +88,7 @@ function mountApi(ctx,config,collector) {
     try {
       const {audit,events}=await task;signal.throwIfAborted();
       if(query.kind==='origins')return json({ok:true,value:{sessionId:query.sessionId,...collector.inspect(query.sessionId)}});
-      if(query.kind==='overview')return json({ok:true,value:{...overview(audit,query.beforeRound),version:typeof __DCL_VERSION__==='string'?__DCL_VERSION__:'0.3.0',collection:collector.status(),build:typeof __DCL_BUILD__==='string'?__DCL_BUILD__:'source'}});
+      if(query.kind==='overview')return json({ok:true,value:{...overview(audit,query.beforeRound),version:typeof __DCL_VERSION__==='string'?__DCL_VERSION__:'0.3.1',collection:collector.status(),build:typeof __DCL_BUILD__==='string'?__DCL_BUILD__:'source'}});
       if(query.kind==='request') {
         const req=audit.requests.find(r=>r.id===query.requestId);
         if(!req)return json({ok:false,error:'请求记录不存在',errorKey:'errorRequestMissing'},404);

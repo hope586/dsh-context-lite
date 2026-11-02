@@ -57,6 +57,12 @@
         "entryMethod": {
           "type": "string"
         },
+        "toolName": {
+          "type": "string"
+        },
+        "callId": {
+          "type": "string"
+        },
         "actor": {
           "type": "object",
           "required": [

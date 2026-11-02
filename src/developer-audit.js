@@ -16,9 +16,14 @@ function sourceOf(provenance,source,observed) {
   const fields=['key','callerType','callerId','api','evidence','files','loader','module','version','entryId','identifiers'];
   const value=Object.fromEntries(fields.filter(k=>p[k]!==undefined).map(k=>[k,p[k]]));
   if(source?.kind)value.kind=source.kind;
-  if(observed?.producer)value.actor=observed.producer;
-  else if(p.callerType&&p.callerId)value.actor=Object.fromEntries(Object.entries({type:p.callerType,id:p.callerId,version:p.version,module:p.module,path:p.file}).filter(([,v])=>v!==undefined));
-  if(observed?.method||p.api)value.entryMethod=observed?.method||p.api;
+  // Audit replay may resolve a tool result through its exact registered call.
+  // Keep that semantic owner/method instead of overwriting it with the native
+  // loop's physical append observation.
+  if(p.callerType&&p.callerId)value.actor=Object.fromEntries(Object.entries({type:p.callerType,id:p.callerId,version:p.version,module:p.module,path:p.file}).filter(([,v])=>v!==undefined));
+  else if(observed?.producer)value.actor=observed.producer;
+  if(p.api||observed?.method)value.entryMethod=p.api||observed?.method;
+  if(observed?.toolName)value.toolName=observed.toolName;
+  if(observed?.callId)value.callId=observed.callId;
   if(observed?.contributors)value.contributors=observed.contributors;
   else if(p.contributors)value.contributors=p.contributors.map(({title,titleLabel,...c})=>c);
   return value;

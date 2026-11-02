@@ -1,6 +1,25 @@
 # Compatibility and acceptance
 
-Current release: 0.3.0; initial provenance acceptance: 0.2.1. Tested on macOS with Node.js 22.22.2. Declared engines are an installation range, not a claim that every release in the range was tested.
+Current source: 0.3.1; latest published release: 0.3.0. The current source requires DSH 0.2.1-rc.5 and uses matching replay/estimation helpers. Tested on macOS with Node.js 22.22.2. Declared engines are an installation range, not a claim that every release in the range was tested.
+
+## Native admission coverage in 0.3.1
+
+| Native path | Current observation | Important boundary |
+| --- | --- | --- |
+| Agent inject / steer / followup / send and inbox structural writes | Exact queued-message fingerprint matched to accepted event | Removed/uncommitted queues are not successful admissions |
+| agent/pre-step returned messages | Newly supplied/changed messages attributed to the observed listener | Unchanged downstream messages keep their owner; rejected proposals create no record |
+| Live Session.append surface messages and replacements | Actual append caller associated with accepted event | Unobserved history or caller ambiguity is not repaired from source tags |
+| System-prompt sections, runtime contexts and tool definitions | Winning scoped registrations and aggregate contributors | No invented per-contributor token split; late inventory cannot recover a caller |
+| ToolRuntime additionalContexts | Native handoff plus tool/call; exact observed middleware authors preserved | An unseen deferContext author remains unknown, rather than being replaced by the loop transport owner |
+| Tool results / later replacements | Registered tool definition for ordinary results; replacement author separately | The definition owner is not a full chain of post-policy/adapter transformations |
+| Native developer tool-registry updates | Known native source, canonical replay and occupancy | Request configuration belongs to request/header; it is not an injected message |
+| Fork seeds, compaction and message projections | Canonical inherited/summary/replacement relationships | Seeds do not emit new admissions; current projections and logical logs cannot prove old wire bytes or semantic fact retention |
+
+An isolated DSH 0.2.1-rc.5 AgentLoop run with a deterministic local adapter compared observer absent/early/late loading over three user turns and a tool round. Logical model-input content hashes matched, pre-step index and direct replacement events were attributed, audit reads preserved source event objects, and continuing after observer unload remained functional. This run made no external model requests and used no real user sessions. It is a native runtime integration check, not another full Desktop model/UI acceptance.
+
+The new public tests use the current official Cordis and SessionStore with synthetic producers. They cover middleware composition and promise identity, unchanged clones versus modifications, rejection, unsafe accessors, direct append/replacement errors, late attachment, fork seeds, teardown, tool-context transfer, unobserved authors and native developer-message replay. Existing 0.3.0 live results below remain historical evidence, not retested claims for this build.
+
+## Historical 0.3.0 acceptance
 
 | Surface | Host | Evidence |
 |---|---|---|
