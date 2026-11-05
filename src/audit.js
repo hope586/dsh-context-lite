@@ -16,10 +16,27 @@ const attachmentReference = block => {
 const slimSource = source => Object.fromEntries(Object.entries(source || {}).filter(([k,v]) => ['kind','plugin','form','path','file','url','windowId','windowTitle','sessionId','senderSessionId','batchId'].includes(k) && ['string','number'].includes(typeof v)));
 const roundStatus = reason => reason?.kind === 'aborted' && reason.reason?.kind === 'user' ? 'interrupted' : reason?.kind === 'completed' ? 'completed' : reason?.kind==='aborted'?'cancelled':reason?.kind==='interrupted'?'recovered':reason?.kind || 'unknown';
 
+/** One bounded wire representation per segment; long merged segments keep only a count. */
+export const maxWireRefs=48;
+export const slimSegment=({refs,...segment})=>({...segment,...(refs.length<=maxWireRefs?{refs:refs.map(n=>({seq:n.seq}))}:{refCount:refs.length})});
+
 /** Replay the canonical surface once. Results contain references and estimates, never a second body store. */
 export function buildAudit(header, events, { maxVisibleRounds = 120, projections = [], inheritedEventCount = 0, sourceProviders = [], originFor = () => undefined } = {}) {
   const log = [], surface = new SurfaceManager(log, 0, projections);
   const records = new Map(), summaries = new Map(), calls = new Map(), rounds = [], requests = [];
+  // Node views and token estimates are shared across snapshots: deriving and
+  // re-pricing every retained node again for every logical request made long
+  // sessions quadratic in both CPU and retained memory.
+  const views = new Map(), roundRecords = new Map();
+  let activeSeqs = null;
+  const viewOf = seq => {
+    if (views.has(seq)) return views.get(seq);
+    const message = surface.deriveEventMessage(log[seq]);
+    const value = message ? { ...records.get(seq), tokens:estimateMessage(message) } : null;
+    views.set(seq, value);
+    return value;
+  };
+  let pricedToolsSeq = null, pricedTools = 0;
   let epoch, epochSeq = null, context = {}, active = null, previousTotal = 0, phase = null;
   const summaryFor = event => event.type==='user/message' && event.data.source?.kind==='compact-checkpoint' && typeof event.surfaceOp==='object' ? (event.sourceEventSeqs||[]).map(seq=>summaries.get(seq)).find(Boolean) : undefined;
   const metaFor = event => {
@@ -37,16 +54,13 @@ export function buildAudit(header, events, { maxVisibleRounds = 120, projections
       ...(event.type === 'tool/result' ? {callId:msg?.source?.callId} : {}) };
   };
   const snapshot = (round, cutSeq) => {
-    const nodes = surface.nodes.map(seq => {
-      const event = log[seq], message = surface.deriveEventMessage(event);
-      if (!message) return null;
-      return { ...records.get(seq), tokens:estimateMessage(message) };
-    }).filter(Boolean).filter(n => n.tokens > 0);
+    const nodes = surface.nodes.map(viewOf).filter(Boolean).filter(n => n.tokens > 0);
     const lastAssistant = [...nodes].reverse().find(n => n.type === 'assistant/message' && n.round === round?.id);
     const lastMessage = lastAssistant && surface.deriveEventMessage(log[lastAssistant.seq]);
     const finalSeq = round?.status === 'completed' && lastMessage && !(lastMessage.content || []).some(b => b.type === 'tool_use' || b.type === 'tool_call') && !log[lastAssistant.seq].data.interrupted ? lastAssistant.seq : null;
     const segments = [];
-    const tools = estimateToolsTokens(epoch);
+    if (pricedToolsSeq !== epochSeq) { pricedTools = estimateToolsTokens(epoch); pricedToolsSeq = epochSeq; }
+    const tools = pricedTools;
     if (tools) segments.push({id:`tools-${epochSeq}`,type:'base',sourceKey:'host-tools',title:'DSH · 工具定义',titleLabel:label('sourceTools'),provenance:describeSource({kind:'host-tools'},{observed:log[epochSeq]&&originFor(log[epochSeq])}),tokens:tools,refs:[],headerSeq:epochSeq});
     for (const node of nodes) {
       let type, title, key, titleKey;
@@ -67,7 +81,9 @@ export function buildAudit(header, events, { maxVisibleRounds = 120, projections
     }
     const pluginNode=n=>n.type==='user/message' && n.source.kind!=='user' && n.summarySeq===undefined;
     const identities=new Map();
-    for(const n of [...(round?.baseline||[]).map(seq=>records.get(seq)).filter(Boolean),...nodes,...[...records.values()].filter(n=>n.round===round?.id)]){if(!pluginNode(n))continue;const key=n.provenance.key;if(!identities.has(key))identities.set(key,{provenance:n.provenance,seqs:[]});const item=identities.get(key);item.seqs.push(n.seq);item.provenance={...item.provenance,identifiers:[...new Set([...item.provenance.identifiers,...n.provenance.identifiers])]};}
+    // roundRecords keeps seqs; resolve them to record objects here — transient
+    // contributions (added then replaced within the round) must stay visible.
+    for(const n of [...(round?.baseline||[]).map(seq=>records.get(seq)).filter(Boolean),...nodes,...(roundRecords.get(round?.id)||[]).map(seq=>records.get(seq)).filter(Boolean)]){if(!pluginNode(n))continue;const key=n.provenance.key;if(!identities.has(key))identities.set(key,{provenance:n.provenance,seqs:[]});const item=identities.get(key);item.seqs.push(n.seq);item.provenance={...item.provenance,identifiers:[...new Set([...item.provenance.identifiers,...n.provenance.identifiers])]};}
     const retainedSet=new Set(nodes.map(n=>n.seq)),baseline=new Set(round?.baseline||[]);
     const changes=[...identities].map(([source,{provenance,seqs}])=>{const ids=[...new Set(seqs)];return {source,title:provenance.title,titleLabel:provenance.titleLabel,provenance,added:ids.filter(seq=>retainedSet.has(seq)&&!baseline.has(seq)),removed:ids.filter(seq=>baseline.has(seq)&&!retainedSet.has(seq)),retained:ids.filter(seq=>baseline.has(seq)&&retainedSet.has(seq)),transient:ids.filter(seq=>!baseline.has(seq)&&!retainedSet.has(seq))};});
     const total=segments.reduce((n,s)=>n+s.tokens,0),added=segments.reduce((n,s)=>n+(s.added||0),0);
@@ -78,6 +94,7 @@ export function buildAudit(header, events, { maxVisibleRounds = 120, projections
     if (event.type === 'turn/start') {
       if (active) {active.status='unknown';Object.assign(active,snapshot(active,event.seq-1));previousTotal=active.total;}
       active={id:rounds.length+1,hostTurn:event.data.turn,startSeq:event.seq,endSeq:null,time:event.time,title:'本轮工作',titleLabel:label('roundWork'),promptSeq:null,status:'running',requests:[],baseline:[...surface.nodes]};
+      roundRecords.set(active.id,activeSeqs=[]);
       rounds.push(active);
     }
     if (event.type === 'step/start') phase=`${event.data.turn}:${event.data.step}`;
@@ -94,12 +111,12 @@ export function buildAudit(header, events, { maxVisibleRounds = 120, projections
       requests.push(req);active?.requests.push(req);
     }
     log.push(event);
-    if (['system/message','developer/message','user/message','assistant/message','tool/result'].includes(event.type)) records.set(event.seq,metaFor(event));
+    if (['system/message','developer/message','user/message','assistant/message','tool/result'].includes(event.type)) {records.set(event.seq,metaFor(event));activeSeqs?.push(event.seq);}
     // Canonical helper applies positional replacements and registered message projections, including image offload.
     void surface.nodes;
     if (event.type === 'turn/end' && active) {
       active.status=roundStatus(event.data.reason);active.reason=event.data.reason;active.endSeq=event.seq;
-      Object.assign(active,snapshot(active,event.seq));active.delta=active.total-previousTotal;previousTotal=active.total;active=null;
+      Object.assign(active,snapshot(active,event.seq));active.delta=active.total-previousTotal;previousTotal=active.total;active=null;activeSeqs=null;
     }
   }
   if (active) {Object.assign(active,snapshot(active,events.at(-1)?.seq ?? -1));active.delta=active.total-previousTotal;}
@@ -116,7 +133,9 @@ export function buildAudit(header, events, { maxVisibleRounds = 120, projections
 export function overview(audit, beforeRound) {
   const candidates=beforeRound?audit.rounds.filter(r=>r.id<beforeRound):audit.rounds;
   const page=candidates.slice(-(audit.maxVisibleRounds||120));
-  return {schemaVersion:1,current:audit.current?{...audit.current,baseline:undefined,requests:[]}:null,sessionId:audit.sessionId,cursor:audit.cursor,hiddenRounds:candidates.length-page.length,limits:audit.limits,limitLabels:audit.limitLabels,rounds:page.map(({baseline,...r})=>({...r,requests:r.requests.map(q=>({id:q.id,settlementSeq:q.settlementSeq,turn:q.turn,step:q.step,status:q.status,inputTotal:q.inputTotal,usage:q.usage,basis:q.basis})),segments:r.segments.map(s=>({...s,refs:s.refs.map(n=>({...n,source:n.source}))}))}))};
+  // Rounds share node views; the wire still only carries bounded references.
+  const slim=({baseline,...r})=>({...r,requests:r.requests.map(q=>({id:q.id,settlementSeq:q.settlementSeq,turn:q.turn,step:q.step,status:q.status,inputTotal:q.inputTotal,usage:q.usage,basis:q.basis})),segments:r.segments.map(slimSegment)});
+  return {schemaVersion:1,current:audit.current?{...slim(audit.current),requests:[]}:null,sessionId:audit.sessionId,cursor:audit.cursor,hiddenRounds:candidates.length-page.length,limits:audit.limits,limitLabels:audit.limitLabels,rounds:page.map(slim)};
 }
 
 /** Page an exact round's retained nodes; referenced earlier source events can be read separately. */

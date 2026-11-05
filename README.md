@@ -6,7 +6,9 @@
 
 **v0.3.0** 增加面向开发者的上下文审计薄层：复用 DSH 原生日志，提供结构化快照、差异和 JSON／JSONL 导出，用于排查插件注入、来源归因、压缩、上下文占用与窗口限制。侧栏和原有读取接口保持兼容。
 
-当前源码 **0.3.1** 补齐原生 `agent/pre-step` 返回消息与直接 `Session.append()` 更新的来源观察，并识别工具附加上下文及原生工具定义更新。它要求 DSH **0.2.1-rc.5 或更高的兼容 0.2.x 版本**；其他版本并不因范围声明自动获得实测保证。此改动尚未创建新的 Release/tag，下方 v0.3.0 下载地址是先前发布版；测试修复版请构建本源码或安装已审阅提交中随附的 `lib/`。入口覆盖和保留边界见 [兼容说明](docs/compatibility.md#native-admission-coverage-in-031)。
+当前版本 **0.3.3** 修复长会话下侧栏与审计读取的 CPU、内存与网络负载开销，并修复元数据存储读路径可能把真实归因逐出保留窗口的缺陷；同时首次发布此前仅存在于源码的 0.3.2 Desktop **0.2.2-rc.1** 启动兼容修复与 0.3.1 原生来源观察能力。摘要见 [v0.3.3 发布说明](docs/RELEASE-NOTES-v0.3.3.md)，边界与实测环境见 [兼容说明](docs/compatibility.md)。
+
+此前 **0.3.1** 补齐原生 `agent/pre-step` 返回消息与直接 `Session.append()` 更新的来源观察，并识别工具附加上下文及原生工具定义更新。它要求 DSH **0.2.1-rc.5 或更高的兼容 0.2.x 版本**；其他版本并不因范围声明自动获得实测保证。入口覆盖和保留边界见 [兼容说明](docs/compatibility.md#native-admission-coverage-in-031)。
 
 - 一轮从用户请求开始，到最终回复或实际中断结束；不中断的中途引导仍属于同一轮。
 - 历史原文、历史压缩信息、用户输入、插件贡献、模型工作和最终汇报分别展示；同源、相邻、同阶段的内容可合并。
@@ -19,16 +21,16 @@
 
 需要已安装的 DeepSeek Harness 和 pnpm。首发通过 GitHub 分发，尚未发布到 npm。
 
-从 [v0.3.0 Release](https://github.com/hope586/dsh-context-lite/releases/tag/v0.3.0) 下载预构建的 `dsh-context-lite-0.3.0.tgz`，对照同页 `SHA256SUMS` 校验后安装：
+从 [v0.3.3 Release](https://github.com/hope586/dsh-context-lite/releases/tag/v0.3.3) 下载预构建的 `dsh-context-lite-0.3.3.tgz`，对照同页 `SHA256SUMS` 校验后安装：
 
 ```sh
-dsh plugin --profile web add ./dsh-context-lite-0.3.0.tgz
+dsh plugin --profile web add ./dsh-context-lite-0.3.3.tgz
 ```
 
 也可以安装带预构建产物的 Git tag：
 
 ```sh
-dsh plugin --profile web add github:hope586/dsh-context-lite#v0.3.0
+dsh plugin --profile web add github:hope586/dsh-context-lite#v0.3.3
 ```
 
 按你管理 Web 的原有方式重启后端，然后打开会话标题栏的“上下文”图标，或右侧栏开始页的“上下文”。不要为重载再启动第二个 Web 服务。Desktop 请通过官方插件管理页添加本地解压目录并启用；不要从 CLI 绕过 Desktop 对 profile 的管理。

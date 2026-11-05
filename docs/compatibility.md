@@ -1,6 +1,20 @@
 # Compatibility and acceptance
 
-Current source: 0.3.1; latest published release: 0.3.0. The current source requires DSH 0.2.1-rc.5 and uses matching replay/estimation helpers. Tested on macOS with Node.js 22.22.2. Declared engines are an installation range, not a claim that every release in the range was tested.
+Current release: 0.3.3 (2026-11-05); previous published release: 0.3.0. Release 0.3.3 also publishes the previously unreleased 0.3.1 and 0.3.2 source updates together with the 2026-11-05 fixes. The current source requires DSH 0.2.1-rc.5 and uses matching replay/estimation helpers. Tested on macOS with Node.js 22.22.2. Declared engines are an installation range, not a claim that every release in the range was tested.
+
+## Release 0.3.3 scope and validation
+
+Release 0.3.3 combines the 0.3.1 native-admission updates, the 0.3.2 Desktop 0.2.2-rc.1 boot repair and the 2026-11-05 review fixes (long-session rebuild cost, bounded sidebar payloads, origin-store read-path eviction and storage pruning; see `docs/review-2026-11-05.md` and `docs/RELEASE-NOTES-v0.3.3.md`). Release validation: 78 automated tests pass (the 62 inherited tests unchanged plus 16 new regressions), the bundle rebuilds from source, package verification and a staged-source privacy scan pass locally, and developer-audit v1 snapshot/diff/export output is byte-identical to 0.3.2 across the differential fixtures. The 2026-11-05 round did not restart or connect a live Desktop/Web host; the Cordis compatibility conclusion rests on the locked 4.0.5 development dependency plus the recorded 0.3.2 on-device validation below. Benchmark figures quoted for this release are synthetic-fixture computation measurements, not end-to-end latency claims. No remote CI is enabled for this repository; release checks run locally (see `docs/CI.md`).
+
+## Desktop 0.2.2-rc.1 startup repair in 0.3.2
+
+Cordis changed private `events.register(label, hooks, callback, options)` and `unregister(hooks, callback)` to use event names instead of hook arrays. The old observer could silently misregister every later non-internal listener, including `webserver/index-inject`, producing an empty Desktop boot injection list. A minimal official profile and each other installed third-party bundle booted; Context Lite alone reproduced the empty list.
+
+The observer now lets native `on()` register exactly once, then wraps newly created records. It no longer calls private `register()`. Removal retains the original host key, translating only callback identity for both old and new Cordis. The bounded observer still relies on tested internal hook records and therefore does not promise compatibility with arbitrary future Cordis changes.
+
+Validation: 62 tests using the existing 0.2.1-rc.5 development dependencies; 5 event/lifecycle/attribution tests against the installed Desktop 0.2.2-rc.1 Cordis; complete installed-plugin profile with 14 boot injections including the loader; production Desktop restarted and user-confirmed screenshot of the loaded main UI. The Web process was not restarted or upgraded, and no new external model request or comprehensive plugin-feature acceptance was performed. The source and local installation were updated; no separate 0.3.2 tag or Release was created, and these changes are first published as part of release 0.3.3.
+
+Run the event checks against another installed host by setting `DSH_TEST_CORDIS_URL` to its Cordis module URL and using a runtime able to read that URL. The default test command continues to use the locked development dependency.
 
 ## Native admission coverage in 0.3.1
 
@@ -55,3 +69,8 @@ A new real headless source-injection comparison with the observer absent versus 
 Desktop 0.2.1-rc.3 loaded the final 0.3.0 build through the official plugin switches. Its live sidebar reported the matching backend build and kept the existing timeline/GenUI rendering. New developer HTTP routes were exercised on Web; a new Desktop model run was not needed or claimed.
 
 47 synthetic tests cover the previous functionality plus developer boundaries, transient surface updates, content opt-in, export completeness/size refusal, source revision/restart pins, evidence history/version preservation, retention and storage-failure containment. The local five-trial, 1000-admission benchmark measured about 38 microseconds added per admission; 1000 existing registry entries were inventoried in about 0.4 ms. These exclude disk/network/model time and are not an end-to-end latency guarantee. Evidence history adds bounded metadata storage; no periodic full-log scan or per-request full-body persistence was introduced.
+
+
+### 0.3.3 coordinator integration verification
+
+The reviewed implementation was loaded successfully in the local Web and Desktop hosts; all three plugin components reported running. Context Lite additionally passed five event tests against the installed Desktop Cordis 4.1.0 and both AutoMemory/Context Lite load orders. This covers loading and the tested interfaces, not full GUI/capture replay or long-duration stress. Release metadata and package checks are repeated for 0.3.3.

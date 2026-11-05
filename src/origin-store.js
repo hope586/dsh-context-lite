@@ -17,6 +17,14 @@ export class OriginStore {
     while(this.sessions.size>this.maxSessions){const key=this.sessions.keys().next().value;if(this.dirty.has(key))this.enqueue(key);this.sessions.delete(key);}
     return value;
   }
+  /** Read without creating a row: reads of unknown sessions must not evict
+   *  real evidence from the bounded (or memory-only) session window. */
+  peek(id) {
+    const cached=this.sessions.get(id);
+    if(cached)return cached;
+    if(!this.table?.get(id))return undefined;
+    return this.session(id);
+  }
   record(sessionId,seq,origin) {
     if(this.closed||!sessionId||!Number.isInteger(seq))return;
     const row=this.session(sessionId),{producer,contributors,...facts}=origin;
@@ -25,24 +33,29 @@ export class OriginStore {
       const key=!row.actors[base]||JSON.stringify(row.actors[base])===JSON.stringify(actor)?base:`${base}@${fingerprint(actor)}`;
       row.actors[key]={...actor};return key;};
     const value={...facts,...(producer?{actor:putActor(producer)}:{}),...(contributors?.length?{contributors:contributors.map(c=>{const {producer,...rest}=c;return {...rest,...(producer?{actor:putActor(producer)}:{})};})}:{})};
+    const overwritten=row.events[seq]!==undefined;
     if(JSON.stringify(row.events[seq])===JSON.stringify(value))return;
     row.events[seq]=value;row.updatedAt=Date.now();
     // Accepted evidence revisions are immutable within the declared retention
     // window. The events map remains a latest-value compatibility projection.
     row.evidence??=[];
     row.evidence.push({seq,observationId:randomUUID(),captureRunId:this.captureRunId,observedAt:row.updatedAt,record:structuredClone(value)});
-    while(row.evidence.length>this.maxRecords){row.evidence.shift();row.droppedEvidence=(row.droppedEvidence||0)+1;}
+    let trimmed=false;
+    while(row.evidence.length>this.maxRecords){row.evidence.shift();row.droppedEvidence=(row.droppedEvidence||0)+1;trimmed=true;}
     const seqs=Object.keys(row.events);
-    while(seqs.length>this.maxRecords){delete row.events[seqs.shift()];row.dropped++;}
-    pruneActors(row);
+    while(seqs.length>this.maxRecords){delete row.events[seqs.shift()];row.dropped++;trimmed=true;}
+    // Unused actor keys only appear when records are replaced or trimmed;
+    // scanning every admission used to make hot capture quadratic in the
+    // retained record count, so prune on those events (and a size guard).
+    if(trimmed||overwritten||Object.keys(row.actors).length>128)pruneActors(row);
     this.revision++;this.dirty.add(sessionId);this.schedule();
   }
   originFor(sessionId,seq) {
-    const row=this.session(sessionId),value=row.events[seq];if(!value)return undefined;
+    const row=this.peek(sessionId),value=row?.events[seq];if(!value)return undefined;
     const {actor,contributors,...rest}=value;
     return {...rest,...(actor?{producer:row.actors[actor]}:{}),...(contributors?{contributors:contributors.map(({actor,...c})=>({...c,...(actor?{producer:row.actors[actor]}:{})}))}:{})};
   }
-  inspect(id) {const value=this.session(id);return {version:1,...structuredClone(value)};}
+  inspect(id) {const value=this.peek(id);return {version:1,...structuredClone(value||{actors:{},events:{},dropped:0})};}
   attach(table) {
     this.table=table;
     for(const [id,row] of this.sessions){const old=table.get(id);if(old){

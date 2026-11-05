@@ -1,6 +1,6 @@
 {
   "name": "dsh-context-lite",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "type": "module",
   "private": true,
   "description": "Read-only context timeline and provenance sidebar for DeepSeek Harness",
@@ -23,7 +23,9 @@
     "docs/provenance.md",
     "docs/developer-audit.md",
     "schemas",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "docs/RELEASE-NOTES-v0.3.3.md",
+    "docs/CI.md"
   ],
   "license": "MIT",
   "engines": {

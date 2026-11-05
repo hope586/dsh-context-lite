@@ -272,18 +272,24 @@ export function collectOrigins(ctx,{enabled=true,maxSessions=64,maxRecords=2000}
     }
   }
   if(enabled&&typeof ctx.on==='function'){
-    const hook=ctx.on('internal/listener',function(event,callback,options){
-      if(!active)return;
-      let release;
-      try {
-        const wrapped=wrapListener(callback,this,event);if(wrapped===callback)return;
-        const hooks=this.events._hooks[event]||=[];
-        release=this.events.register(`context-lite ownership: ${event}`,hooks,callback,options);
-        const record=[...hooks].reverse().find(r=>r.callback===callback);
-        if(record){record.callback=wrapped;listeners.add({record,hooks,wrapped,callback});}
-        return release;
-      }catch{failures++;return release;}
-    },{global:true});
+    // Observe after native registration. Do not call private register(), whose
+    // key changed from a hook array to an event name in newer Cordis. Calling
+    // the original on() exactly once also preserves other registration hooks.
+    patch(ctx.events,'on',(fn,self,args)=>{
+      const event=args[0];
+      if(typeof event!=='string'||event.startsWith('internal/')||event.startsWith('loader/'))return Reflect.apply(fn,self,args);
+      const previous=safe(()=>new Set(self._hooks?.[event]||[]));
+      const result=Reflect.apply(fn,self,args);
+      if(previous)safe(()=>{
+        const hooks=self._hooks?.[event]||[];
+        for(const record of hooks){
+          if(previous.has(record))continue;
+          const original=record.callback,wrapped=wrapListener(original,record.ctx,event);
+          if(wrapped!==original){record.callback=wrapped;listeners.add({record,hooks,wrapped,callback:original});}
+        }
+      });
+      return result;
+    });
     // Existing callbacks retain their original disposer key. Replace only the
     // invoked callback field; the original disposer is translated on removal.
     for(const [event,hooks] of Object.entries(ctx.events._hooks||{}))for(const record of hooks){
@@ -304,11 +310,11 @@ export function collectOrigins(ctx,{enabled=true,maxSessions=64,maxRecords=2000}
     // Keep direct callback disposal compatible with wrappers registered above:
     // Cordis unregister deletes by callback identity, which must remain original.
     patch(untrace(ctx.events),'unregister',(fn,self,args)=>{
-      const [hooks,callback]=args,entry=[...listeners].find(r=>r.hooks===hooks&&r.callback===callback);
-      if(entry){const result=Reflect.apply(fn,self,[hooks,entry.wrapped]);listeners.delete(entry);return result;}
+      const [key,callback]=args,hooks=Array.isArray(key)?key:self._hooks?.[key];
+      const entry=[...listeners].find(r=>r.hooks===hooks&&r.callback===callback);
+      if(entry){const result=Reflect.apply(fn,self,[key,entry.wrapped]);listeners.delete(entry);return result;}
       return Reflect.apply(fn,self,args);
     },true);
-    void hook;
   }
   async function refreshCatalog() {
     const manager=get('pluginManager');if(!manager)return;

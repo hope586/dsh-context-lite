@@ -6,7 +6,9 @@ A read-only context sidebar organized around **timeline** and **provenance**. Se
 
 **v0.3.0** adds a thin developer context audit layer over DSH's native log: structured snapshots, diffs and JSON/JSONL exports for debugging plugin injection, attribution, compression, context occupancy and window limits. The sidebar and its existing read API remain compatible.
 
-Current source **0.3.1** adds native `agent/pre-step` contribution and direct `Session.append()` observation, plus additional-tool-context and native tool-definition-update identification. It requires DSH **0.2.1-rc.5 or a compatible later 0.2.x version**; the declared range is not a test claim for every version. No new Release/tag has been created for this change. The v0.3.0 downloads below remain the previous release; to test the fix, build this source or install the prebuilt `lib/` from a reviewed commit. See [entry-point coverage](docs/compatibility.md#native-admission-coverage-in-031).
+Current release **0.3.3** cuts long-session CPU, memory and per-refresh payload costs in the sidebar and audit reads, and fixes a metadata-storage bug where read paths could evict real attribution evidence from the bounded window. It is also the first published release of the previously source-only 0.3.2 Desktop **0.2.2-rc.1** boot fix and the 0.3.1 native admission observation. See the [v0.3.3 release notes](docs/RELEASE-NOTES-v0.3.3.md) and [compatibility](docs/compatibility.md).
+
+Version **0.3.1** adds native `agent/pre-step` contribution and direct `Session.append()` observation, plus additional-tool-context and native tool-definition-update identification. It requires DSH **0.2.1-rc.5 or a compatible later 0.2.x version**; the declared range is not a test claim for every version. See [entry-point coverage](docs/compatibility.md#native-admission-coverage-in-031).
 
 A round ends on completion or an actual user interruption. Steering without stopping stays in the same round. Raw history and compressed history are separate; model work is grouped while plugin contributions remain distinguishable. Automatic collection requires no changes to other plugins. Existing registry entries are inventoried without evaluating providers; unknown owners stay unknown. The sidebar follows the DSH interface language (English or Chinese). Open tabs, details and errors update when the language changes; original content, plugin names, paths and identifiers stay verbatim.
 
@@ -14,12 +16,12 @@ A round ends on completion or an actual user interruption. Steering without stop
 
 Requires DeepSeek Harness and pnpm. This project is distributed on GitHub and is not published to npm.
 
-Download `dsh-context-lite-0.3.0.tgz` from the [v0.3.0 release](https://github.com/hope586/dsh-context-lite/releases/tag/v0.3.0), verify it against the attached `SHA256SUMS`, then run:
+Download `dsh-context-lite-0.3.3.tgz` from the [v0.3.3 release](https://github.com/hope586/dsh-context-lite/releases/tag/v0.3.3), verify it against the attached `SHA256SUMS`, then run:
 
 ```sh
-dsh plugin --profile web add ./dsh-context-lite-0.3.0.tgz
+dsh plugin --profile web add ./dsh-context-lite-0.3.3.tgz
 # Or install the prebuilt tag:
-dsh plugin --profile web add github:hope586/dsh-context-lite#v0.3.0
+dsh plugin --profile web add github:hope586/dsh-context-lite#v0.3.3
 ```
 
 Reload your managed Web backend using its normal controls; do not start a second Web instance. Open the context icon in the session header or the context entry in the right sidebar. On Desktop, add the extracted local package directory through the official plugin manager and enable it; do not manage the Desktop profile through the CLI. Both distributions include `lib/` and need no install-time build script. See the [official bundle documentation](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.md).
